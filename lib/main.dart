@@ -8,13 +8,8 @@ import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Fijar el idioma a español por defecto para Intl
   Intl.defaultLocale = 'es';
-
-  // Inicializar SharedPreferences
   await StorageService.init();
-
   runApp(const ControlGastosApp());
 }
 
@@ -24,18 +19,14 @@ class ControlGastosApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Para que el DatePicker y widgets nativos aparezcan en español
+      title: 'Control de Gastos',
+      debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('es'), // Español
-        Locale('en'), // Inglés (u otros que quieras)
-      ],
-      debugShowCheckedModeBanner: false,
-      title: 'Control de Gastos',
+      supportedLocales: const [Locale('es'), Locale('en')],
       theme: ThemeData(
         primarySwatch: Colors.blue,
         textTheme: GoogleFonts.latoTextTheme(),
