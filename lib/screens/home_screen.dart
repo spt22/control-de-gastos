@@ -25,8 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   void _cargarDatos() {
     // Cargar saldo total
     _saldo = StorageService.getSaldoActual();
-    // Cargar 5 ultimos apuntes del mes corriente
-    _ultimosRegistros = StorageService.getLast5RecordsOfCurrentMonth();
+    // Cargar 5 últimos apuntes del mes actual
+    _ultimosRegistros = StorageService.getRecordsOfCurrentMonth().take(5).toList();
     setState(() {});
   }
 
@@ -73,13 +73,12 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // 3) Los 5 últimos apuntes del mes
+            // 3) Últimos 5 apuntes del mes
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Últimos 5 apuntes de este mes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(height: 8),
@@ -93,7 +92,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         return Card(
                           child: ListTile(
                             title: Text('${reg['descripcion']} (${reg['tipo']})'),
-                            subtitle: Text('Cantidad: ${reg['cantidad']} €   |   Fecha: ${reg['fecha']}'),
+                            subtitle: Text(
+                              'Cantidad: ${reg['cantidad']} € | Fecha: ${reg['fecha']}',
+                            ),
                           ),
                         );
                       },
@@ -111,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                       MaterialPageRoute(builder: (_) => const AddApunteScreen()),
                     );
-                    _cargarDatos(); // recargar saldo y apuntes al regresar
+                    _cargarDatos(); // Recargar saldo y apuntes al regresar
                   },
                   child: const Text('Agregar Apunte'),
                 ),
@@ -121,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                       MaterialPageRoute(builder: (_) => const SearchScreen()),
                     );
-                    _cargarDatos(); // recargar saldo y apuntes al regresar
+                    _cargarDatos(); // Recargar saldo y apuntes al regresar
                   },
                   child: const Text('Buscar'),
                 ),

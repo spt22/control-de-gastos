@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class EditDialog extends StatefulWidget {
   final Map<String, dynamic> registroOriginal;
@@ -18,7 +19,7 @@ class _EditDialogState extends State<EditDialog> {
   late TextEditingController _descCtrl;
   late TextEditingController _cantCtrl;
   late String _tipo;
-  late String _fecha;
+  late DateTime _fechaSeleccionada; // Se guardará como DateTime
 
   @override
   void initState() {
@@ -26,11 +27,42 @@ class _EditDialogState extends State<EditDialog> {
     _descCtrl = TextEditingController(text: widget.registroOriginal['descripcion']);
     _cantCtrl = TextEditingController(text: widget.registroOriginal['cantidad'].toString());
     _tipo = widget.registroOriginal['tipo'];
-    _fecha = widget.registroOriginal['fecha']; // "yyyy-MM-dd"
+
+    // Convertir 'yyyy-MM-dd' a DateTime
+    final fechaStr = widget.registroOriginal['fecha'] as String;
+    final partes = fechaStr.split('-');
+    final year = int.parse(partes[0]);
+    final month = int.parse(partes[1]);
+    final day = int.parse(partes[2]);
+    _fechaSeleccionada = DateTime(year, month, day);
+  }
+
+  Future<void> _pickDate() async {
+    final nuevaFecha = await showDatePicker(
+      context: context,
+      initialDate: _fechaSeleccionada,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (nuevaFecha != null) {
+      setState(() {
+        _fechaSeleccionada = nuevaFecha;
+      });
+    }
+  }
+
+  String _dateToString(DateTime date) {
+    // Convertir DateTime a 'yyyy-MM-dd'
+    final y = date.year;
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
   }
 
   @override
   Widget build(BuildContext context) {
+    final fechaFormato = DateFormat('dd/MM/yyyy').format(_fechaSeleccionada);
+
     return AlertDialog(
       title: const Text('Editar registro'),
       content: SingleChildScrollView(
@@ -60,6 +92,17 @@ class _EditDialogState extends State<EditDialog> {
                 }
               },
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Fecha: $fechaFormato'),
+                const SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: _pickDate,
+                  child: const Text('Cambiar'),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -81,8 +124,9 @@ class _EditDialogState extends State<EditDialog> {
             final updated = {
               'descripcion': desc,
               'cantidad': cant,
-              'fecha': _fecha,
+              'fecha': _dateToString(_fechaSeleccionada), // Nuevo valor
               'tipo': _tipo,
+              // 'id' se conserva en StorageService.editRecord
             };
             widget.onSave(updated);
             Navigator.pop(context);
