@@ -8,9 +8,30 @@ class StorageService {
 
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    _migrateOldDataIfNeeded();
   }
 
-  /// Obtiene TODOS los registros guardados.
+  /// Verifica si hay registros antiguos sin 'id' y les asigna uno.
+  static void _migrateOldDataIfNeeded() {
+    final records = getAllRecords();
+    bool changed = false;
+    final nowMillis = DateTime.now().millisecondsSinceEpoch;
+
+    for (var r in records) {
+      if (!r.containsKey('id')) {
+        // Asigna un id único si no existe
+        r['id'] = nowMillis + records.indexOf(r); 
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveAllRecords(records);
+    }
+  }
+
+  // ----------- CRUD BÁSICO -----------
+
+  /// Retorna TODOS los registros en la app.
   static List<Map<String, dynamic>> getAllRecords() {
     final dataString = _prefs.getString(_KEY);
     if (dataString == null) return [];
@@ -18,27 +39,26 @@ class StorageService {
     return rawList.map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  /// Sobrescribe la lista completa de registros.
+  /// Guarda (sobrescribe) la lista completa de registros.
   static Future<void> saveAllRecords(List<Map<String, dynamic>> records) async {
     final jsonString = jsonEncode(records);
     await _prefs.setString(_KEY, jsonString);
   }
 
-  /// Agrega un nuevo registro con un ID único.
+  /// Crea un nuevo registro con ID único.
   static Future<void> addRecord(Map<String, dynamic> newRecord) async {
     final records = getAllRecords();
-    newRecord['id'] = DateTime.now().millisecondsSinceEpoch; // ID único
+    newRecord['id'] = DateTime.now().millisecondsSinceEpoch;
     records.add(newRecord);
     await saveAllRecords(records);
   }
 
-  /// Edita un registro identificándolo por su ID.
+  /// Edita un registro por ID.
   static Future<void> editRecord(int id, Map<String, dynamic> updatedRecord) async {
     final records = getAllRecords();
     final index = records.indexWhere((r) => r['id'] == id);
     if (index != -1) {
-      // Mantenemos el mismo ID para no perder la referencia
-      updatedRecord['id'] = id;
+      updatedRecord['id'] = id; // Mantiene el mismo ID
       records[index] = updatedRecord;
       await saveAllRecords(records);
     }
@@ -54,8 +74,10 @@ class StorageService {
     }
   }
 
-  /// Filtra registros por descripción y rango de fechas [startDate, endDate].
-  /// Ajusta las fechas para ignorar la hora y filtrar correctamente.
+  // ----------- FILTRADO Y SALDOS -----------
+
+  /// Filtra por descripción y rango de fechas.
+  /// Ajusta fechas para cubrir el día completo (00:00 a 23:59).
   static List<Map<String, dynamic>> getFilteredRecords({
     String descripcion = '',
     DateTime? startDate,
@@ -64,15 +86,12 @@ class StorageService {
     final all = getAllRecords();
 
     return all.where((registro) {
-      // Parseamos la fecha almacenada (ej. "2023-06-07")
       final parsed = DateTime.parse(registro['fecha']);
-      // Ajustamos a (año, mes, día) para evitar problemas de hora
       final fecha = DateTime(parsed.year, parsed.month, parsed.day);
 
       final desc = (registro['descripcion'] ?? '').toString().toLowerCase();
       final query = descripcion.toLowerCase();
 
-      // Verificar si coincide la descripción (si hay búsqueda)
       final matchDesc = query.isEmpty || desc.contains(query);
 
       bool matchStart = true;
@@ -91,7 +110,7 @@ class StorageService {
     }).toList();
   }
 
-  /// Calcula el saldo total (sumando ingresos y restando gastos) de TODOS los registros.
+  /// Calcula el saldo total (todos los registros).
   static double getSaldoActual() {
     final records = getAllRecords();
     double saldo = 0.0;
@@ -107,12 +126,11 @@ class StorageService {
     return saldo;
   }
 
-  /// Obtiene TODOS los apuntes del mes actual, ordenados de más reciente a más antiguo.
+  /// Retorna todos los apuntes del mes actual (orden descendente).
   static List<Map<String, dynamic>> getRecordsOfCurrentMonth() {
     final now = DateTime.now();
-    // Inicio del mes
     final startOfMonth = DateTime(now.year, now.month, 1);
-    // Fin del mes (ej. para junio sería 30 de junio 23:59:59)
+
     final firstDayNextMonth = DateTime(now.year, now.month + 1, 1);
     final endOfMonth = firstDayNextMonth.subtract(const Duration(seconds: 1));
 
@@ -121,16 +139,15 @@ class StorageService {
       endDate: endOfMonth,
     );
 
-    // Orden descendente por fecha
     monthRecords.sort((a, b) {
       final fechaA = DateTime.parse(a['fecha']);
       final fechaB = DateTime.parse(b['fecha']);
-      return fechaB.compareTo(fechaA);
+      return fechaB.compareTo(fechaA); // descendente
     });
     return monthRecords;
   }
 
-  /// Calcula el saldo del MES actual (ingresos - gastos solo de este mes).
+  /// Calcula el saldo solo del mes actual.
   static double getSaldoOfCurrentMonth() {
     final monthRecords = getRecordsOfCurrentMonth();
     double saldo = 0.0;

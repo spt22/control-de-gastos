@@ -58,6 +58,7 @@ class _AddApunteScreenState extends State<AddApunteScreen> {
       // Fecha actual en formato "yyyy-MM-dd"
       'fecha': DateFormat('yyyy-MM-dd').format(DateTime.now()),
       'tipo': tipo, // "Ingreso" o "Gasto"
+      // El 'id' se genera en StorageService.addRecord()
     };
 
     await StorageService.addRecord(nuevoRegistro);
@@ -128,7 +129,7 @@ class _AddApunteScreenState extends State<AddApunteScreen> {
 
   /// Borrar un registro tras confirmación
   Future<void> _borrarRegistro(Map<String, dynamic> registro) async {
-    final id = registro['id'] as int;
+    final id = registro['id'] as int; // usar el ID para eliminar
     await StorageService.deleteRecord(id);
     _cargarDatos();
     ScaffoldMessenger.of(context).showSnackBar(
